@@ -1,12 +1,21 @@
-const Driver = require("../models/Driver");
-const Admin = require("../models/Admin");
-const Bus = require("../models/Bus");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import { Request, Response } from "express";
+import Driver from "../models/Driver";
+import Admin from "../models/Admin";
+import Bus from "../models/Bus";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+interface JwtPayloadWithUser {
+  id: string;
+  role?: string;
+}
 
 // ================= REGISTER =================
-// Repurposed to create the College Admin account
-exports.postRegister = async (req, res) => {
+
+/**
+ * Endpoint to create the College Admin account.
+ */
+export const postRegister = async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
@@ -25,44 +34,65 @@ exports.postRegister = async (req, res) => {
   }
 };
 
-// ================= LOGIN (JWT) =================
-exports.postLogin = async (req, res) => {
+// ================= LOGIN =================
+
+/**
+ * Handles credentials authentication for both Admin and Driver users.
+ * Issues a HTTP-only cookie with the JWT token.
+ */
+export const postLogin = async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
-    let user = await Admin.findOne({ username });
-    let role = 'admin';
+    let user: any = await Admin.findOne({ username });
+    let role = "admin";
 
     if (!user) {
       user = await Driver.findOne({ username });
-      role = 'driver';
+      role = "driver";
     }
 
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid username or password." });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password || "");
     if (!isMatch) {
       return res.status(401).json({ success: false, message: "Invalid username or password." });
     }
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error("JWT_SECRET environment variable is not defined");
+    }
+
     const token = jwt.sign(
       { id: user._id, role },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: "7d" }
     );
 
+    // Find assigned bus if user is a driver
+    let bus = null;
+    if (role === "driver") {
+      bus = await Bus.findOne({ driver: user._id });
+    }
+
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // true in production
+      secure: false, // set to true in production
       sameSite: "lax"
     });
 
     return res.status(200).json({
       success: true,
       message: "Login successful.",
-      user: { id: user._id, username: user.username, role }
+      user: {
+        id: user._id,
+        username: user.username,
+        role,
+        busId: bus?._id || null, 
+      }
     });
 
   } catch (err) {
@@ -71,13 +101,23 @@ exports.postLogin = async (req, res) => {
   }
 };
 
-// ================= LOGOUT (JWT) =================
-exports.postLogout = async (req, res) => {
+// ================= LOGOUT =================
+
+/**
+ * Invalidates the authentication cookie.
+ * Resets the active tracking state for Driver logouts.
+ */
+export const postLogout = async (req: Request, res: Response) => {
   try {
     const token = req.cookies.token;
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded.role === 'driver' || !decoded.role) {
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        throw new Error("JWT_SECRET environment variable is not defined");
+      }
+
+      const decoded = jwt.verify(token, jwtSecret) as JwtPayloadWithUser;
+      if (decoded.role === "driver" || !decoded.role) {
         const bus = await Bus.findOne({ driver: decoded.id });
         if (bus) {
           bus.trackingStarted = false;

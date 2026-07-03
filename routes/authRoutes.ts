@@ -1,12 +1,11 @@
-//authRoutes.js
+import express from "express";
+import * as authController from "../controllers/authController";
 
-const express = require("express");
 const router = express.Router();
-const authController = require("../controllers/authController");
 
-// API Routes Only (No view rendering)
+// Authentication API Routes
 router.post("/register", authController.postRegister);
 router.post("/login", authController.postLogin);
 router.post("/logout", authController.postLogout);
 
-module.exports = router;
+export default router;

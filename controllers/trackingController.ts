@@ -1,10 +1,20 @@
-const Bus = require("../models/Bus");
+import { Request, Response } from "express";
+import Bus from "../models/Bus";
 
 // ================= DISTANCE CALCULATION =================
-function haversineDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
+
+/**
+ * Calculates haversine distance between two sets of lat/lng in kilometers.
+ */
+function haversineDistance(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371; // Radius of Earth in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
 
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -17,8 +27,19 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * c;
 }
 
+interface NearestStopResult {
+  stopName: string;
+  busNumber: string;
+  routeName: string;
+  distance_km: string;
+}
+
 // ================= GET ALL BUSES =================
-exports.getHomePage = async (req, res) => {
+
+/**
+ * Endpoint for loading active bus statuses on the homepage.
+ */
+export const getHomePage = async (req: Request, res: Response) => {
   try {
     const buses = await Bus.find().populate("driver", "username");
 
@@ -36,7 +57,11 @@ exports.getHomePage = async (req, res) => {
 };
 
 // ================= GET SINGLE BUS =================
-exports.getTrackingPage = async (req, res) => {
+
+/**
+ * Fetches real-time status and stops metrics for a single bus.
+ */
+export const getTrackingPage = async (req: Request, res: Response) => {
   try {
     const bus = await Bus.findById(req.params.busId);
 
@@ -61,21 +86,26 @@ exports.getTrackingPage = async (req, res) => {
 };
 
 // ================= FIND NEAREST STOP =================
-exports.findNearestStop = async (req, res) => {
+
+/**
+ * Evaluates user's location to find the nearest bus stop within 10 km.
+ */
+export const findNearestStop = async (req: Request, res: Response) => {
   const { latitude, longitude } = req.body;
   const MAX_RADIUS_KM = 10;
 
-  if (!latitude || !longitude) {
+  if (latitude === undefined || longitude === undefined) {
     return res.status(400).json({
       success: false,
       message: "Latitude and longitude are required."
     });
   }
 
+  const latNum = Number(latitude);
+  const lngNum = Number(longitude);
+
   try {
-    const allBuses = await Bus.find({}).select(
-      "busNumber routeName stops"
-    );
+    const allBuses = await Bus.find({}).select("busNumber routeName stops");
 
     if (!allBuses.length) {
       return res.status(404).json({
@@ -84,15 +114,15 @@ exports.findNearestStop = async (req, res) => {
       });
     }
 
-    let nearestStopInfo = null;
+    let nearestStopInfo: NearestStopResult | null = null;
     let minDistance = Infinity;
 
     allBuses.forEach((bus) => {
       bus.stops.forEach((stop) => {
         if (stop.lat && stop.lng) {
           const distance = haversineDistance(
-            latitude,
-            longitude,
+            latNum,
+            lngNum,
             stop.lat,
             stop.lng
           );
@@ -132,7 +162,11 @@ exports.findNearestStop = async (req, res) => {
 };
 
 // ================= ALL BUS SCHEDULE =================
-exports.allBus = async (req, res) => {
+
+/**
+ * Returns full schedules list for all registered buses.
+ */
+export const allBus = async (req: Request, res: Response) => {
   try {
     const busSchedule = await Bus.find({});
 

@@ -1,9 +1,8 @@
-//dashboardRoutes
+import express from "express";
+import * as dashboardController from "../controllers/dashboardController";
+import { isAuthenticated } from "../middleware/authMiddleware";
 
-const express = require("express");
 const router = express.Router();
-const dashboardController = require("../controllers/dashboardController");
-const { isAuthenticated } = require("../middleware/authMiddleware");
 
 // GET driver dashboard data
 router.get("/", isAuthenticated, dashboardController.getDashboard);
@@ -14,4 +13,4 @@ router.get("/bus", isAuthenticated, dashboardController.getEditBus);
 // CREATE or UPDATE bus
 router.post("/bus", isAuthenticated, dashboardController.postEditBus);
 
-module.exports = router;
+export default router;

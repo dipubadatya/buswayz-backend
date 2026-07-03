@@ -1,7 +1,8 @@
-const express = require("express");
+import express from "express";
+import * as adminController from "../controllers/adminController";
+import { isAuthenticated, isAdmin } from "../middleware/authMiddleware";
+
 const router = express.Router();
-const adminController = require("../controllers/adminController");
-const { isAuthenticated, isAdmin } = require("../middleware/authMiddleware");
 
 // PUT update admin credentials
 router.put("/credentials", isAuthenticated, isAdmin, adminController.updateCredentials);
@@ -25,9 +26,9 @@ router.get("/buses/:id", isAuthenticated, isAdmin, adminController.getBusById);
 router.post("/buses", isAuthenticated, isAdmin, adminController.createBus);
 
 // PUT update a specific bus
-router.put("/buses/:id", isAuthenticated, isAdmin, adminController.updateBus);``
+router.put("/buses/:id", isAuthenticated, isAdmin, adminController.updateBus);
 
 // DELETE a bus
 router.delete("/buses/:id", isAuthenticated, isAdmin, adminController.deleteBus);
 
-module.exports = router;
+export default router;
