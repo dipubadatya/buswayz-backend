@@ -82,7 +82,7 @@ export const postLogin = async (req: Request, res: Response) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: isSecure,
-      sameSite: isSecure ? "none" : "lax"
+      sameSite: "none"
     });
 
     return res.status(200).json({
@@ -92,7 +92,7 @@ export const postLogin = async (req: Request, res: Response) => {
         id: user._id,
         username: user.username,
         role,
-        busId: bus?._id || null, 
+        busId: bus?._id || null,
       }
     });
 
@@ -134,7 +134,7 @@ export const postLogout = async (req: Request, res: Response) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: isSecure,
-    sameSite: isSecure ? "none" : "lax"
+    sameSite: "none"
   });
 
   return res.status(200).json({
