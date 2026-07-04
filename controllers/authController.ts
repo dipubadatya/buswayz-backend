@@ -78,10 +78,11 @@ export const postLogin = async (req: Request, res: Response) => {
       bus = await Bus.findOne({ driver: user._id });
     }
 
+    const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // set to true in production
-      sameSite: "lax"
+      secure: isSecure,
+      sameSite: isSecure ? "none" : "lax"
     });
 
     return res.status(200).json({
@@ -129,7 +130,12 @@ export const postLogout = async (req: Request, res: Response) => {
     console.error("Logout cleanup error:", err);
   }
 
-  res.clearCookie("token");
+  const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: isSecure ? "none" : "lax"
+  });
 
   return res.status(200).json({
     success: true,
