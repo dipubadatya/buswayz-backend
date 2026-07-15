@@ -3,6 +3,7 @@ import Driver from "../models/Driver";
 import Bus from "../models/Bus";
 import Admin from "../models/Admin";
 
+
 // ================= ADMIN CREDENTIALS =================
 
 /**
@@ -97,6 +98,51 @@ export const deleteDriver = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: "Error deleting driver." });
+  }
+};
+
+/**
+ * Updates a driver's username and/or password.
+ */
+export const updateDriver = async (req: Request, res: Response) => {
+  try {
+    const driverId = req.params.id;
+    const { username, newPassword } = req.body;
+
+    if (!username && !newPassword) {
+      return res.status(400).json({ success: false, message: "Username or password required." });
+    }
+
+    const driver = await Driver.findById(driverId);
+    if (!driver) {
+      return res.status(404).json({ success: false, message: "Driver not found." });
+    }
+
+    if (username) {
+      const existing = await Driver.findOne({ username, _id: { $ne: driverId } });
+      if (existing) {
+        return res.status(409).json({ success: false, message: "Driver username already exists." });
+      }
+      driver.username = username;
+    }
+
+    if (newPassword) {
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: "Password must be at least 6 characters." });
+      }
+      driver.password = newPassword;
+    }
+
+    await driver.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Driver credentials updated successfully.",
+      driver: { id: driver._id, username: driver.username }
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Error updating driver." });
   }
 };
 

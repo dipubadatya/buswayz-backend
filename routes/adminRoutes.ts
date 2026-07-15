@@ -16,6 +16,9 @@ router.post("/drivers", isAuthenticated, isAdmin, adminController.createDriver);
 // DELETE a driver
 router.delete("/drivers/:id", isAuthenticated, isAdmin, adminController.deleteDriver);
 
+// PUT update driver credentials
+router.put("/drivers/:id", isAuthenticated, isAdmin, adminController.updateDriver);
+
 // GET all buses
 router.get("/buses", isAuthenticated, isAdmin, adminController.getBuses);
 
